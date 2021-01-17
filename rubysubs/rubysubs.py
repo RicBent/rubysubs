@@ -199,7 +199,7 @@ def convert_sub_file(in_path, out_path, tag_parser=tag_parse_ruby.parse):
     # Create styles
     style = subs.styles.get('Default')
     if style is None:
-        # Todo: Set nice default style if Default is not found
+        # TODO: Set better default style if Default is not found
         style = pysubs2.SSAStyle()
     else:
         bottom_margin = round(style.marginv)

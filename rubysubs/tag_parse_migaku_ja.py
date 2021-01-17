@@ -84,8 +84,7 @@ class Mode(Enum):
         return associations.get(key.lower(), cls.KANJI_READING)
 
 
-# TODO: Toggle unknonw/1T coloring
-def migaku_to_ruby(parsed_lines, mode=Mode.KANJI_READING, pitch_highlighting=True, unknown_underlining=True, one_t_highlighting=True):
+def migaku_to_ruby(parsed_lines, mode=Mode.KANJI_READING, pitch_highlighting=True, pitch_shapes=False, unknown_underlining=True, one_t_highlighting=True):
 
     coloring = {
         'h': '005CE6',  # Heiban
@@ -104,6 +103,14 @@ def migaku_to_ruby(parsed_lines, mode=Mode.KANJI_READING, pitch_highlighting=Tru
                 return co, cc
         return '', ''
 
+    def pitch_shapes_text(accent_list):
+        ret = ''
+        for a in accent_list[1:]:
+            color = coloring.get(a[0])
+            if color:
+                ret += '{\\c&H' + color[4:6] + color[2:4] + color[0:2] + '&}⬩{\\c}'
+        return ret
+
     # List if tag lists for each line
     ret = []
 
@@ -114,7 +121,7 @@ def migaku_to_ruby(parsed_lines, mode=Mode.KANJI_READING, pitch_highlighting=Tru
 
         for (main_text, ruby_text, following_text, accent_list, dictionary_form, learning_status, is_one_t) in l:
             co, cc = deco_for_accent_list(accent_list)
-            
+
             # Unknown/1T opening tags
             if one_t_highlighting and is_one_t:
                 retl.append( tags.TagHighlightStart(255, 211, 20, 102) )
@@ -126,6 +133,7 @@ def migaku_to_ruby(parsed_lines, mode=Mode.KANJI_READING, pitch_highlighting=Tru
                     retl.append( tags.TagUnderlineStart(241, 78, 78) )
 
             # Tags for content
+            # TODO: Remove spaces from Kanji/Furigana modes
             if mode == Mode.READING:
                 # Use ruby text instead of normal text if available
                 txt = co + (ruby_text if ruby_text else main_text) + following_text + cc
@@ -145,6 +153,10 @@ def migaku_to_ruby(parsed_lines, mode=Mode.KANJI_READING, pitch_highlighting=Tru
 
                 if following_text:
                     retl.append( tags.TagText(co + following_text + cc, '') )
+
+            # Pitch shapes
+            if pitch_shapes:
+                retl.append( tags.TagText(pitch_shapes_text(accent_list), '') )
 
             # Unknown/1T closing tags
             if unknown_underlining and learning_status < 2:
@@ -172,13 +184,13 @@ def migaku_to_ruby(parsed_lines, mode=Mode.KANJI_READING, pitch_highlighting=Tru
     return ret
 
 
-def parse(text, mode=Mode.KANJI_READING, pitch_highlighting=True, unknown_underlining=True, one_t_marking=True):
+def parse(text, mode=Mode.KANJI_READING, pitch_highlighting=True, pitch_shapes=False, unknown_underlining=True, one_t_marking=True):
     migaku_parsed = parse_migaku(text)
-    return migaku_to_ruby(migaku_parsed, mode, pitch_highlighting, unknown_underlining, one_t_marking)
+    return migaku_to_ruby(migaku_parsed, mode, pitch_highlighting, pitch_shapes, unknown_underlining, one_t_marking)
 
 
 def args_from_strings(in_args):
-    out_args = [Mode.KANJI_READING, True, True, True]
+    out_args = [Mode.KANJI_READING, True, False, True, True]
 
     if len(in_args) >= 1:
         out_args[0] = Mode.from_string(in_args[0])
@@ -187,10 +199,13 @@ def args_from_strings(in_args):
         out_args[1] = in_args[1].lower() not in ['no', 'n', 'false', 'f', '0']
 
     if len(in_args) >= 3:
-        out_args[2] = in_args[2].lower() not in ['no', 'n', 'false', 'f', '0']
+        out_args[2] = in_args[2].lower() in ['yes', 'y', 'true', 't', '1']
 
     if len(in_args) >= 4:
         out_args[3] = in_args[3].lower() not in ['no', 'n', 'false', 'f', '0']
+
+    if len(in_args) >= 5:
+        out_args[4] = in_args[4].lower() not in ['no', 'n', 'false', 'f', '0']
 
     return out_args
 

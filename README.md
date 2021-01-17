@@ -26,15 +26,16 @@ rubysubs <source subtitle> <output subtitle> [<tag parser> [arg0] [arg1] ...]
   - ja: Migaku Japanese tag parser
     - arg0: mode (furigana/kanji/kana, default: furigana)
     - arg1: pitch highlighting (yes/no, default: yes)
-    - arg2: unknown words underlining (yes/no, default: yes)
-    - arg3: 1T words highlighting (yes/no, default: yes)
+    - arg2: pitch shapes (yes/no, default: no)
+    - arg3: unknown word underlining (yes/no, default: yes)
+    - arg4: 1T word highlighting (yes/no, default: yes)
 
 Examples:
 
 ```
 rubysubs source.ass out.ass
-rubysubs source_ja.ass out_ja_furigana_no_markings.ass ja furigana no no no
-rubysubs source_ja.ass out_ja_kana_all_markings.ass ja kana yes yes yes
+rubysubs source_ja.ass out_ja_furigana_no_markings.ass ja furigana no no no no
+rubysubs source_ja.ass out_ja_kana_all_markings.ass ja kana yes yes yes yes
 ```
 
 Notes:
@@ -59,3 +60,7 @@ qapp = QGuiApplication(sys.argv)
 rubysubs.convert_sub_file('source.ass', 'out.ass', rubysubs.tag_parse_ruby.parse)
 rubysubs.convert_sub_file('source_jp.ass', 'out_ja.ass', rubysubs.tag_parse_migaku_ja.parse)
 ```
+
+## Todo
+- Support overlapping subtitles
+- Automatic line breaks
