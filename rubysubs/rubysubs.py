@@ -34,10 +34,10 @@ class RubySubParser():
         probe_font = QFont(font_name, probe_size)
         probe_font.setBold(bold)
         probe_font_metrics = QFontMetrics(probe_font)
-        ass_font_factor = probe_size / probe_font_metrics.lineSpacing()
+        ass_font_factor = probe_size / probe_font_metrics.height()
 
         self.normal_line_height = round(font_size)
-        self.font_size = round(font_size * ass_font_factor)
+        self.font_size = math.ceil(font_size * ass_font_factor)
         
         if ruby_font_size is None:
             self.ruby_font_size = round(font_size / 2)
@@ -64,17 +64,19 @@ class RubySubParser():
                 return math.floor(self.normal_line_height * 1.5)
         return self.normal_line_height
 
-    # Returns list of (layer, style, text) for input sub_text
-    def parse_sub(self, sub_text):
+    # Returns list of (layer, style, text) and postion of the next subtitle if a collision occurs
+    def parse_sub(self, sub_text, start_position=None):
         sub_text = sub_text.replace('\\N', '\n')
 
         parsed_lines = self.tag_parser(sub_text)
 
         # Calculate line y positions
         # The origin of y positions is the center of the main line
-        line_y_positions = [self.sub_origin]
-        for line in parsed_lines[-1:0:-1]:  # From last to second
+        line_y_positions = [self.sub_origin if start_position is None else start_position]
+        for line in reversed(parsed_lines):
             line_y_positions.insert(0, line_y_positions[0] - self.get_line_height(line))
+
+        collision_position = line_y_positions.pop(0)
 
         # Process lines
         ret = []
@@ -159,7 +161,7 @@ class RubySubParser():
 
                 curr_x += width
 
-        return ret
+        return ret, collision_position
 
 
 def convert_sub_file(in_path, out_path, tag_parser=tag_parse_ruby.parse):
@@ -186,9 +188,6 @@ def convert_sub_file(in_path, out_path, tag_parser=tag_parse_ruby.parse):
     # Load subs
     with open(in_path, encoding=subs_encoding, errors='replace') as f:
         subs = pysubs2.SSAFile.from_file(f)
-
-    # Order subs
-    subs.sort()
 
     # Determine frame size
     frame_width = int(subs.info.get('PlayResX', '1920'))
@@ -243,10 +242,23 @@ def convert_sub_file(in_path, out_path, tag_parser=tag_parse_ruby.parse):
 
     # Create parsed subtitle events
     original_events = subs.events.copy()
+    original_events.sort()
     subs.events.clear()
 
+    collision_stack = []    # (end, position)
+
     for e in original_events:
-        parts = parser.parse_sub(e.text)
+        position = None
+        for collision_end, collision_position in reversed(collision_stack):
+            if collision_end <= e.start:
+                del collision_stack[-1]
+            else:
+                position = collision_position
+                break
+        
+        parts, collision_position = parser.parse_sub(e.text, position)
+        collision_stack.append((e.end, collision_position))
+
         for (layer, style, text) in parts:
             e = e.copy()
             e.layer = layer
