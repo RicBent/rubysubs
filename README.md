@@ -1,6 +1,8 @@
 # Migaku rubysubs
 
-Tool/library to add ruby text to Advanced SubStation Alpha (.ass) subtitles.
+Tool/library to add ruby text to Advanced SubStation Alpha (.ass) subtitles using the same syntax as in Anki or the Migaku Anki plugins.
+
+![](https://i.imgur.com/7B4drNw.jpg)
 
 rubysubs is licensed under LGPLv3. See LICENSE for further detail.
 
@@ -61,6 +63,7 @@ rubysubs.convert_sub_file('source.ass', 'out.ass', rubysubs.tag_parse_ruby.parse
 rubysubs.convert_sub_file('source_jp.ass', 'out_ja.ass', rubysubs.tag_parse_migaku_ja.parse)
 ```
 
-## Todo
-- Support overlapping subtitles
-- Automatic line breaks
+## Used libraries
+- [cChardet](https://github.com/PyYoshi/cChardet) for subtitle file encoding detection
+- [pysubs2](https://github.com/tkarabela/pysubs2) for subtitle file reading/writing
+- [PyQt5](https://www.riverbankcomputing.com/software/pyqt/) for text measurements
