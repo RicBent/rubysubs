@@ -123,7 +123,15 @@ class RubySubParser():
                 # Text
                 if tag.isof(tags.TagText):
                     if tag.text.strip():
-                        ret.append( (3, 'Default', '{\\pos(%d,%d)}%s' % (x, y, tag.text)) )
+                        # Insert zero width spaces around exposed spaces to prevent them collapsing
+                        text = tag.text
+                        text_stripped = strip_ass_tags(text)
+                        if len(text_stripped) > 1:
+                            if text_stripped.startswith(' '):
+                                text = '\u200B' + text
+                            if text_stripped.endswith(' '):
+                                text = text + '\u200B'
+                        ret.append( (3, 'Default', '{\\pos(%d,%d)}%s' % (x, y, text)) )
 
                     if tag.ruby_text.strip():
                         ret.append( (2, 'Ruby', '{\\pos(%d,%d)}%s' % (x, ruby_y, tag.ruby_text)) )
