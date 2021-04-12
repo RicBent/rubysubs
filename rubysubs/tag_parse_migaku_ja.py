@@ -1,4 +1,5 @@
 from . import tags
+from . import ja_util
 
 from enum import Enum
 
@@ -71,15 +72,18 @@ class Mode(Enum):
     KANJI = 0,
     KANJI_READING = 1,
     READING = 2,
+    KANJI_READING_UNKNOWN = 3,
 
     @classmethod
     def from_string(cls, key):
         associations = {
-            'kanji':        cls.KANJI,
-            'kanjireading': cls.KANJI_READING,
-            'reading':      cls.READING,
-            'furigana':     cls.KANJI_READING,
-            'kana':         cls.READING,
+            'kanji':            cls.KANJI,
+            'kanjireading':     cls.KANJI_READING,
+            'reading':          cls.READING,
+            'unknown':          cls.KANJI_READING_UNKNOWN,
+            'furigana':         cls.KANJI_READING,
+            'kana':             cls.READING,
+            'furigana_unknown': cls.KANJI_READING_UNKNOWN,
         }
         return associations.get(key.lower(), cls.KANJI_READING)
 
@@ -144,12 +148,18 @@ def migaku_to_ruby(parsed_lines, mode=Mode.KANJI_READING, pitch_highlighting=Tru
                 txt = co + main_text + following_text + cc
                 retl.append( tags.TagText(txt, '') )
 
-            else:   # Mode.KANJI_READING
-                tag_text = co + main_text + cc
-                tag_ruby_text = ''
-                if ruby_text:
-                    tag_ruby_text = co + ruby_text + cc
-                retl.append( tags.TagText(tag_text, tag_ruby_text) )
+            else:   # Mode.KANJI_READING and Mode.KANJI_READING_UNKNOWN
+                if ruby_text and (mode != mode.KANJI_READING_UNKNOWN or learning_status == 0):
+                    groups = ja_util.distribute_furigana(main_text, ruby_text)
+                    for expression, reading in groups:
+                        tag_text = co + expression + cc
+                        tag_ruby_text = ''
+                        if reading:
+                            tag_ruby_text = co + reading + cc
+                        retl.append( tags.TagText(tag_text, tag_ruby_text) )
+                else:
+                    tag_text = co + main_text + cc
+                    retl.append( tags.TagText(tag_text, '') )
 
                 if following_text:
                     retl.append( tags.TagText(co + following_text + cc, '') )
@@ -162,7 +172,7 @@ def migaku_to_ruby(parsed_lines, mode=Mode.KANJI_READING, pitch_highlighting=Tru
             if unknown_underlining and learning_status < 2:
                 retl.append( tags.TagUnderlineEnd )
 
-            if is_one_t:
+            if one_t_highlighting and is_one_t:
                 retl.append( tags.TagHighlightEnd )
 
             # TODO: Emit spaces if in kana mode
