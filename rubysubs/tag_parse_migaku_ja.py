@@ -4,7 +4,7 @@ from . import ja_util
 from enum import Enum
 
 
-# Entries: (main_text, ruby_text, following_text, accent_list, dictionary_form, learning_status, is_one_t)
+# Entries: (main_text, ruby_text, following_text, accent_list, dictionary_form, learning_status, is_one_t, one_t_frequency)
 
 def parse_migaku(text):
     lines = []
@@ -25,7 +25,7 @@ def parse_migaku(text):
             k = l.rfind(' ', last, i)
 
             if last < k:
-                parts.append( (l[last:k], '', '', [], None, 2, False) )
+                parts.append( (l[last:k], '', '', [], None, 2, False, 0) )
 
             k = max(last, k+1)
 
@@ -44,6 +44,7 @@ def parse_migaku(text):
             dictionary_form = None
             learning_status = 2     # Learned
             is_one_t = False
+            one_t_frequency = 0
 
             bracket_parts_1 = bracket_parts[0].replace('、', ',').split(',')    # Replace to support both browser and anki syntax
             ruby_text = bracket_parts_1[0]
@@ -54,14 +55,17 @@ def parse_migaku(text):
             if len(bracket_parts) >= 3:
                 learning_status = int(bracket_parts[2])
             if len(bracket_parts) >= 4:
-                is_one_t = bracket_parts[3] == '1'
+                one_t_info_parts = bracket_parts[3].split(',')
+                is_one_t = one_t_info_parts[0] == '1'
+                if len(one_t_info_parts) >= 2:
+                    one_t_frequency = int(one_t_info_parts[1])
 
-            parts.append( (l[k:i], ruby_text, l[j+1:m], accent_list, dictionary_form, learning_status, is_one_t) )
+            parts.append( (l[k:i], ruby_text, l[j+1:m], accent_list, dictionary_form, learning_status, is_one_t, one_t_frequency) )
 
             last = m+1
 
         if last < len(l):
-            parts.append( (l[last:len(l)], '', '', [], None, 2, False) )
+            parts.append( (l[last:len(l)], '', '', [], None, 2, False, 0) )
 
         lines.append(parts)
 
@@ -88,7 +92,23 @@ class Mode(Enum):
         return associations.get(key.lower(), cls.KANJI_READING)
 
 
-def migaku_to_ruby(parsed_lines, mode=Mode.KANJI_READING, pitch_highlighting=True, pitch_shapes=False, unknown_underlining=True, one_t_highlighting=True):
+def frequency_color(freq):
+    if freq == 0:
+        return (255, 211,   0, 0.5)
+    if (freq < 1500):
+        return ( 44, 173, 246, 0.5)
+    if (freq < 5000):
+        return ( 65, 208, 182, 0.5)
+    if (freq < 15000):
+        return (253, 255,  22, 0.5)
+    if (freq < 30000):
+        return (226, 116,  32, 0.5)
+    if (freq < 60000):
+        return (249,  28,  28, 0.5)
+    return (203, 203, 203, 0.5)
+
+
+def migaku_to_ruby(parsed_lines, mode=Mode.KANJI_READING, pitch_highlighting=True, pitch_shapes=False, unknown_underlining=True, one_t_highlighting=True, one_t_frequency_marking=True):
 
     coloring = {
         'h': '005CE6',  # Heiban
@@ -123,12 +143,15 @@ def migaku_to_ruby(parsed_lines, mode=Mode.KANJI_READING, pitch_highlighting=Tru
         # Line tags
         retl = []
 
-        for (main_text, ruby_text, following_text, accent_list, dictionary_form, learning_status, is_one_t) in l:
+        for (main_text, ruby_text, following_text, accent_list, dictionary_form, learning_status, is_one_t, one_t_frequency) in l:
             co, cc = deco_for_accent_list(accent_list)
 
             # Unknown/1T opening tags
             if one_t_highlighting and is_one_t:
-                retl.append( tags.TagHighlightStart(255, 211, 20, 102) )
+                if not one_t_frequency_marking:
+                    one_t_frequency = 0
+                color = frequency_color(one_t_frequency)
+                retl.append( tags.TagHighlightStart(*color) )
 
             if unknown_underlining and learning_status < 2:
                 if learning_status == 1:
@@ -194,13 +217,13 @@ def migaku_to_ruby(parsed_lines, mode=Mode.KANJI_READING, pitch_highlighting=Tru
     return ret
 
 
-def parse(text, mode=Mode.KANJI_READING, pitch_highlighting=True, pitch_shapes=False, unknown_underlining=True, one_t_marking=True):
+def parse(text, mode=Mode.KANJI_READING, pitch_highlighting=True, pitch_shapes=False, unknown_underlining=True, one_t_marking=True, one_t_frequency_marking=True):
     migaku_parsed = parse_migaku(text)
-    return migaku_to_ruby(migaku_parsed, mode, pitch_highlighting, pitch_shapes, unknown_underlining, one_t_marking)
+    return migaku_to_ruby(migaku_parsed, mode, pitch_highlighting, pitch_shapes, unknown_underlining, one_t_marking, one_t_frequency_marking)
 
 
 def args_from_strings(in_args):
-    out_args = [Mode.KANJI_READING, True, False, True, True]
+    out_args = [Mode.KANJI_READING, True, False, True, True, True]
 
     if len(in_args) >= 1:
         out_args[0] = Mode.from_string(in_args[0])
@@ -216,6 +239,9 @@ def args_from_strings(in_args):
 
     if len(in_args) >= 5:
         out_args[4] = in_args[4].lower() not in ['no', 'n', 'false', 'f', '0']
+
+    if len(in_args) >= 6:
+        out_args[5] = in_args[5].lower() not in ['no', 'n', 'false', 'f', '0']
 
     return out_args
 

@@ -1,14 +1,7 @@
 from . import tags
 
-gender_colors = {
-    'm': '005CE6',
-    'f': 'E60000',
-    'n': '808080',
-}
-
 def is_word_char(c):
-    return c.isalnum()
-
+    return c not in ' ·"“”“”\'『』「」。.、,~-_()[]{}|\\/!?'
 
 def frequency_color(freq):
     if freq == 0:
@@ -26,7 +19,7 @@ def frequency_color(freq):
     return (203, 203, 203, 0.5)
 
 
-def parse(text, gender_highlighting=True, unknown_underlining=True, one_t_marking=True, one_t_frequency_marking=True):
+def parse(text, unknown_underlining=True, one_t_marking=True, one_t_frequency_marking=True):
     lines_tags = []
 
     for line_text in text.split('\n'):
@@ -59,26 +52,18 @@ def parse(text, gender_highlighting=True, unknown_underlining=True, one_t_markin
             bracket_parts = bracket_text.split(';')
 
 
-            if len(bracket_parts) != 3:
+            if len(bracket_parts) != 2:
                 line_tags.append( tags.TagText(word, '?') )
             else:
-                gender = bracket_parts[0]
-                learning_status = int(bracket_parts[1])
+                learning_status = int(bracket_parts[0])
 
                 is_one_t = False
                 one_t_frequency = 0
 
-                one_t_info_parts = bracket_parts[2].split(',')
+                one_t_info_parts = bracket_parts[1].split(',')
                 is_one_t = one_t_info_parts[0] == '1'
                 if len(one_t_info_parts) >= 2 and one_t_frequency_marking:
                     one_t_frequency = int(one_t_info_parts[1])
-
-                if gender_highlighting:
-                    color = gender_colors.get(gender)
-                    if color:
-                        co = '{\\c&H' + color[4:6] + color[2:4] + color[0:2] + '&}'
-                        cc = '{\\c}'
-                        word = co + word + cc
 
                 if one_t_marking and is_one_t:
                     color = frequency_color(one_t_frequency)
@@ -111,7 +96,7 @@ def parse(text, gender_highlighting=True, unknown_underlining=True, one_t_markin
 
 
 def args_from_strings(in_args):
-    out_args = [True, True, True, True]
+    out_args = [True, True, True]
 
     if len(in_args) >= 1:
         out_args[0] = in_args[0].lower() not in ['no', 'n', 'false', 'f', '0']
@@ -121,9 +106,6 @@ def args_from_strings(in_args):
 
     if len(in_args) >= 3:
         out_args[2] = in_args[2].lower() not in ['no', 'n', 'false', 'f', '0']
-
-    if len(in_args) >= 4:
-        out_args[3] = in_args[3].lower() not in ['no', 'n', 'false', 'f', '0']
 
     return out_args
 

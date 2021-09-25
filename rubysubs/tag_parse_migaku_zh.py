@@ -165,7 +165,23 @@ class Mode:
         return (ret_text, ret_deco)
 
 
-def parse(text, mode, tone_highlighting, unknown_underlining, one_t_marking):
+def frequency_color(freq):
+    if freq == 0:
+        return (255, 211,   0, 0.5)
+    if (freq < 1500):
+        return ( 44, 173, 246, 0.5)
+    if (freq < 5000):
+        return ( 65, 208, 182, 0.5)
+    if (freq < 15000):
+        return (253, 255,  22, 0.5)
+    if (freq < 30000):
+        return (226, 116,  32, 0.5)
+    if (freq < 60000):
+        return (249,  28,  28, 0.5)
+    return (203, 203, 203, 0.5)
+
+
+def parse(text, mode, tone_highlighting, unknown_underlining, one_t_marking, one_t_frequency_marking):
 
     lines_tags = []
 
@@ -210,12 +226,17 @@ def parse(text, mode, tone_highlighting, unknown_underlining, one_t_marking):
                     learning_status = int(bracket_parts[1])
                 
                 is_one_t = False
+                one_t_frequency = 0
                 if len(bracket_parts) >= 3:
-                    is_one_t = bracket_parts[2] == '1'
+                    one_t_info_parts = bracket_parts[2].split(',')
+                    is_one_t = one_t_info_parts[0] == '1'
+                    if len(one_t_info_parts) >= 2 and one_t_frequency_marking:
+                        one_t_frequency = int(one_t_info_parts[1])
 
                 # Unknown/1T opening tags
                 if one_t_marking and is_one_t:
-                    line_tags.append( tags.TagHighlightStart(255, 211, 20, 102) )
+                    color = frequency_color(one_t_frequency)
+                    line_tags.append( tags.TagHighlightStart(*color) )
 
                 if unknown_underlining and learning_status < 2:
                     if learning_status == 1:
@@ -246,7 +267,7 @@ def parse(text, mode, tone_highlighting, unknown_underlining, one_t_marking):
 
 
 def args_from_strings(in_args, is_cantonese):
-    out_args = [Mode(is_cantonese), True, True, True]
+    out_args = [Mode(is_cantonese), True, True, True, True]
 
     if len(in_args) >= 1:
         out_args[0] = Mode(is_cantonese, in_args[0])
@@ -259,6 +280,9 @@ def args_from_strings(in_args, is_cantonese):
 
     if len(in_args) >= 4:
         out_args[3] = in_args[3].lower() not in ['no', 'n', 'false', 'f', '0']
+
+    if len(in_args) >= 5:
+        out_args[4] = in_args[4].lower() not in ['no', 'n', 'false', 'f', '0']
 
     return out_args
 

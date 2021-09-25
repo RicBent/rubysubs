@@ -1,6 +1,5 @@
 from . import tags
 from . import tag_parse_ruby
-from . import tag_parse_migaku_ja
 
 import math
 import codecs
@@ -164,7 +163,8 @@ class RubySubParser():
                         y1 = math.ceil(y + self.font_height/2)
                         y2 = math.ceil(y1 - highlight_height)
                         c = '%02X%02X%02X' % (highlight_start_tag.b, highlight_start_tag.g, highlight_start_tag.r)
-                        ca = highlight_start_tag.a
+                        ca_raw = max(0, min(1, highlight_start_tag.a))
+                        ca = round((1-ca_raw) * 255)
                         ret.append( (0, 'Highlight', '{\\pos(0,0)}{\c&H%s&\\1a&H%02X&}{\p1}m %d %d l %d %d %d %d %d %d{\p0}{\c\\1a}' % (c, ca, x1, y1, x2, y1, x2, y2, x1, y2)) )
 
                 curr_x += width

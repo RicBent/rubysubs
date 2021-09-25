@@ -21,6 +21,7 @@ def main():
             'zh':       rubysubs.tag_parse_migaku_zh.parser_from_string_args,
             'zh_hk':    rubysubs.tag_parse_migaku_zh.parser_from_string_args_HK,
             'eu':       rubysubs.tag_parse_migaku_eu.parser_from_string_args,
+            'ko':       rubysubs.tag_parse_migaku_ko.parser_from_string_args,
         }
 
         if not tag_parser_requested in tag_parser_builders:
