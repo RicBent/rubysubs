@@ -19,7 +19,8 @@ setuptools.setup(
         ],
     },
     install_requires=[
-        'cchardet',
+        'cchardet;python_version<\'3.10\'',
+        'faust-cchardet;python_version>=\'3.10\''
         'pysubs2',
         'PyQt5'
     ],
